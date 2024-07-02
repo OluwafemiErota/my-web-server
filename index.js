@@ -6,19 +6,22 @@ const port = process.env.PORT || 3000;
 
 // Root route
 app.get('/', (req, res) => {
-  res.send('Welcome to the API. Use /api/hello?visitor_name=YourName to get a personalized greeting.');
+  res.send('Welcome to the API. Use /api/hello?visitor_name=Mark to get a personalized greeting.');
 });
 
 app.get('/api/hello', async (req, res) => {
   const visitorName = req.query.visitor_name || 'Guest';
-  let clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  let clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
   // Handling IPv6 localhost
   if (clientIp === '::1') clientIp = '127.0.0.1';
 
   try {
     // Use IP geolocation API to get location
+    console.log(`Fetching location for IP: ${clientIp}`);
     const geoResponse = await axios.get(`https://ipapi.co/${clientIp}/json/`);
+    console.log(`GeoResponse: ${JSON.stringify(geoResponse.data)}`);
+    
     const location = geoResponse.data.city || 'Unknown';
 
     // Use weather API to get temperature (Using the environment variable for the API key)
@@ -27,7 +30,10 @@ app.get('/api/hello', async (req, res) => {
       throw new Error('Weather API key is not set');
     }
 
+    console.log(`Fetching weather for location: ${location}`);
     const weatherResponse = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${location}&units=metric&appid=${weatherApiKey}`);
+    console.log(`WeatherResponse: ${JSON.stringify(weatherResponse.data)}`);
+    
     const temperature = weatherResponse.data.main.temp;
 
     res.json({
@@ -36,8 +42,12 @@ app.get('/api/hello', async (req, res) => {
       greeting: `Hello, ${visitorName}!, the temperature is ${temperature} degrees Celsius in ${location}`
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).send('Error fetching data');
+    console.error(`Error: ${error.message}`);
+    res.status(500).json({
+      response: {},
+      remark: "Invalid API Endpoint",
+      score: 0
+    });
   }
 });
 
