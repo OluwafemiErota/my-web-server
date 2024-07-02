@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const app = express();
@@ -5,7 +6,7 @@ const port = process.env.PORT || 3000;
 
 app.get('/api/hello', async (req, res) => {
   const visitorName = req.query.visitor_name || 'Guest';
-  let clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  let clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
   // Handling IPv6 localhost
   if (clientIp === '::1') clientIp = '127.0.0.1';
@@ -15,8 +16,12 @@ app.get('/api/hello', async (req, res) => {
     const geoResponse = await axios.get(`https://ipapi.co/${clientIp}/json/`);
     const location = geoResponse.data.city || 'Unknown';
 
-    // Use weather API to get temperature (Replace with your own API key)
-    const weatherApiKey = '2fef0708b86d22d15628bbe3cdf4033e';
+    // Use weather API to get temperature (Using the environment variable for the API key)
+    const weatherApiKey = process.env.WEATHER_API_KEY;
+    if (!weatherApiKey) {
+      throw new Error('Weather API key is not set');
+    }
+
     const weatherResponse = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${location}&units=metric&appid=${weatherApiKey}`);
     const temperature = weatherResponse.data.main.temp;
 
